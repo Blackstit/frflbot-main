@@ -13,7 +13,7 @@ MYSQL_HOST = os.getenv('MYSQLHOST')
 MYSQL_USER = os.getenv('MYSQLUSER')
 MYSQL_PASSWORD = os.getenv('MYSQLPASSWORD')
 MYSQL_DATABASE = os.getenv('MYSQLDATABASE')
-MYSQL_PORT = os.getenv('MYSQLPORT')
+MYSQL_PORT = int(os.getenv('MYSQLPORT'))  # Преобразование в целое число
 
 # Подключение к базе данных MySQL
 mydb = mysql.connector.connect(
