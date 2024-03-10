@@ -5,13 +5,23 @@ from datetime import datetime
 import random
 import string
 import media
+import os
+
+# Подключение к базе данных MySQL
+# Получение значений из переменных окружения
+MYSQL_HOST = os.getenv('MYSQLHOST')
+MYSQL_USER = os.getenv('MYSQLUSER')
+MYSQL_PASSWORD = os.getenv('MYSQLPASSWORD')
+MYSQL_DATABASE = os.getenv('MYSQLDATABASE')
+MYSQL_PORT = os.getenv('MYSQLPORT')
 
 # Подключение к базе данных MySQL
 mydb = mysql.connector.connect(
-    host="monorail.proxy.rlwy.net",
-    user="root",
-    password="FVOkliOSmPRerhQRdpaKNIHWbWidXhUV",
-    database="railway"
+    host=MYSQL_HOST,
+    user=MYSQL_USER,
+    password=MYSQL_PASSWORD,
+    database=MYSQL_DATABASE,
+    port=MYSQL_PORT
 )
 
 # Создание объекта cursor для выполнения SQL-запросов
