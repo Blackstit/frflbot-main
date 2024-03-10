@@ -183,6 +183,7 @@ from telebot import types
 def profile(message):
     user_id = message.chat.id
     user_data = cur.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+    print(user_data)  # Выводите результат для проверки
 
     if user_data:
         referrals_count = user_data[5]
