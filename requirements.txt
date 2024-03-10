@@ -1,4 +1,4 @@
-telebot
+pyTelegramBotAPI
 sqlite3
 datetime
 random
