@@ -183,13 +183,16 @@ def about_us(message):
 
 from telebot import types
 
+from datetime import datetime
+from telebot import types
+
 @bot.message_handler(func=lambda message: message.text == "Профиль 👤")
 def profile(message):
     user_id = message.chat.id
+
     # Получаем информацию о пользователе из базы данных
     cur.execute("SELECT * FROM users WHERE id = %s", (user_id,))
     user_data = cur.fetchone()
-    print(user_data)  # Выводите результат для проверки
 
     if user_data:
         referrals_count = user_data[5]
@@ -205,12 +208,10 @@ def profile(message):
         current_datetime = datetime.now()
         
         # Получаем дату регистрации пользователя
-        registration_date = user_data[4]
         registration_datetime = datetime.strptime(registration_date, "%Y-%m-%d %H:%M:%S")
         
         # Вычисляем разницу в днях между текущей датой и датой регистрации
         days_since_registration = (current_datetime - registration_datetime).days
-
 
         # Получаем информацию о пригласившем пользователе
         referrer_info = ""
@@ -230,7 +231,7 @@ def profile(message):
         # Получаем дату последней активности пользователя из таблицы user_stats
         cur.execute("SELECT last_message_date FROM user_stats WHERE user_id = %s ORDER BY last_message_date DESC LIMIT 1", (user_id,))
         last_activity_date = cur.fetchone()
-        last_activity_date = last_activity_date[0] if last_activity_date else "Нет данных"
+        last_activity_date = last_activity_date[0].strftime("%Y-%m-%d %H:%M:%S") if last_activity_date else "Нет данных"
 
         # Формируем сообщение профиля с учетом количества сообщений, репутации и информации о пригласившем пользователе
         profile_message = f"Имя: {first_name}\nФамилия: {last_name}\nИмя пользователя: @{username}\nДней в боте: {days_since_registration}\nПоследняя активность: {last_activity_date}\nРеферралы: {referrals_count}\nКоличество сообщений: {message_count}\n$AGAVA: {reputation}\n\n{referrer_info}Ваша реферальная ссылка: t.me/Cyndycate_invaterbot?start={referral_code}"
