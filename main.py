@@ -1,17 +1,27 @@
 import telebot
 from telebot import types
-import sqlite3 as sql
+import mysql.connector
 from datetime import datetime
 import random
 import string
 import media
 
-# База данных
-con = sql.connect("data.db", check_same_thread=False)
-cur = con.cursor()
+# Подключение к базе данных MySQL
+mydb = mysql.connector.connect(
+    host="monorail.proxy.rlwy.net",
+    user="root",
+    password="FVOkliOSmPRerhQRdpaKNIHWbWidXhUV",
+    database="railway"
+)
+
+# Создание объекта cursor для выполнения SQL-запросов
+cur = mydb.cursor()
+
+# Создание таблицы пользователей, если она не существует
 cur.execute('''CREATE TABLE IF NOT EXISTS users
              (id INTEGER PRIMARY KEY, username TEXT, first_name TEXT, last_name TEXT, registration_date TEXT, referrals INTEGER, referral_code TEXT, referrer_id INTEGER, reputation INTEGER DEFAULT 0)''')
 
+# Создание таблицы выполненных заданий, если она не существует
 cur.execute('''CREATE TABLE IF NOT EXISTS completed_tasks (
     id INTEGER PRIMARY KEY,
     user_id INTEGER,
