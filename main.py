@@ -84,7 +84,8 @@ def start(message):
     print(f"{username} - Реферральный код: {referer_code} мессадж: {message.text}")
 
     # Проверяем, зарегистрирован ли уже пользователь
-    user_data = cur.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+    cur.execute("SELECT * FROM users WHERE id = %s", (user_id,))
+    user_data = cur.fetchone()
     print(f"{username} - Старт. юзер дата: {user_data}")
     if not user_data:
         # Генерируем уникальный реферральный код
@@ -93,30 +94,30 @@ def start(message):
         # Поиск пользователя с реферральным кодом
         referrer_id = None
         if referral_code:
-            referrer_data = cur.execute("SELECT id FROM users WHERE referral_code = ?", (referer_code,)).fetchone()
+            cur.execute("SELECT id FROM users WHERE referral_code = %s", (referer_code,))
+            referrer_data = cur.fetchone()
             if referrer_data:
                 referrer_id = referrer_data[0]
-
+    
         # Добавляем пользователя в базу данных
-        cur.execute("INSERT INTO users (id, username, first_name, last_name, registration_date, referrals, referral_code, referrer_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        cur.execute("INSERT INTO users (id, username, first_name, last_name, registration_date, referrals, referral_code, referrer_id) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
                     (user_id, username, first_name, last_name, registration_date, 0, referral_code, referrer_id))
         # Вставляем запись в таблицу user_stats
-        cur.execute("INSERT INTO user_stats (user_id, username, message_count) VALUES (?, ?, 0)", (user_id, username))
-        con.commit()
-
+        cur.execute("INSERT INTO user_stats (user_id, username, message_count) VALUES (%s, %s, 0)", (user_id, username))
+        mydb.commit()
+    
         # Отправляем сообщение о подписке и кнопку профиля
         bot.send_message(user_id, f"Добро пожаловать в мир AGAVA CRYPTO!", reply_markup=клавиатура_профиля)
         bot.send_message(user_id, """Приветствуем тебя в нашем комьюнити крипто-энтузиастов!
-
-Мы ищем активных участников, готовых вкладывать свое время и энергию в наше сообщество, чтобы вместе стремиться к успеху!
-
-Прежде чем присоединиться к нам, подпишись на наш Telegram-канал и создай свой профиль в этом боте.
-
-Здесь ты сможешь отслеживать свой прогресс, получать награды и поощрения от AGAVA CRYPTO! Давай двигаться к успеху вместе!""", reply_markup=клавиатура_inline)
+    
+    Мы ищем активных участников, готовых вкладывать свое время и энергию в наше сообщество, чтобы вместе стремиться к успеху!
+    
+    Прежде чем присоединиться к нам, подпишись на наш Telegram-канал и создай свой профиль в этом боте.
+    
+    Здесь ты сможешь отслеживать свой прогресс, получать награды и поощрения от AGAVA CRYPTO! Давай двигаться к успеху вместе!""", reply_markup=клавиатура_inline)
     else:
         # Отправляем приветственное сообщение
         bot.send_message(user_id, "С возвращением!", reply_markup=клавиатура_профиля)
-
 
 
 @bot.callback_query_handler(func=lambda call: call.data == "check")
@@ -125,17 +126,20 @@ def c_listener(call):
     x = bot.get_chat_member(chan_id, user_id)
 
     if x.status in ["member", "creator", "administrator"]:
-        user_data = cur.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+        # Получаем информацию о пользователе из базы данных
+        cur.execute("SELECT * FROM users WHERE id = %s", (user_id,))
+        user_data = cur.fetchone()
         print(f"Чек, юзер дата: {user_data}")
         if user_data:
             # Получаем ID реферрера
             referrer_id = user_data[7]
             if referrer_id is not None:
                 # Увеличиваем счетчик рефералов
-                cur.execute("UPDATE users SET referrals = referrals + 1 WHERE id = ?", (referrer_id,))
-                con.commit()
+                cur.execute("UPDATE users SET referrals = referrals + 1 WHERE id = %s", (referrer_id,))
+                mydb.commit()
                 # Отправка уведомления рефереру о новом реферале
-                referrer_data = cur.execute("SELECT first_name, username, referrals FROM users WHERE id = ?", (referrer_id,)).fetchone()
+                cur.execute("SELECT first_name, username, referrals FROM users WHERE id = %s", (referrer_id,))
+                referrer_data = cur.fetchone()
                 if referrer_data:
                     referrer_name = referrer_data[0]
                     referrer_username = referrer_data[1]
@@ -147,14 +151,14 @@ def c_listener(call):
                     bot.send_message(referrer_id, message_text)
 
                 # Начисление 10 очков репутации за нового реферала
-                cur.execute("UPDATE users SET reputation = reputation + 10 WHERE id = ?", (referrer_id,))
-                con.commit()
+                cur.execute("UPDATE users SET reputation = reputation + 10 WHERE id = %s", (referrer_id,))
+                mydb.commit()
 
         # Удаление кнопки "Проверить"
         bot.edit_message_text(chat_id=user_id, message_id=call.message.message_id, text="Спасибо за подписку! Добро пожаловать!", reply_markup=None)
     else:
         # Удаление сообщения с запросом подписаться и отправка нового сообщения
-        bot.edit_message_text(chat_id=user_id, message_id=call.message.message_id, text="Чтобы продолжить, сначала подпишитесь на наш канал и на наш чат", reply_markup=клавиатура_inline)
+        bot.edit_message_text(chat_id=user_id, message_id=call.message.message_id, text="Чтобы продолжить, сначала подпишитесь на наш канал и наш чат", reply_markup=клавиатура_inline)
 
 # Обработчик нажатия на кнопку "О нас"
 @bot.message_handler(func=lambda message: message.text == "О нас 🌐")
@@ -182,7 +186,9 @@ from telebot import types
 @bot.message_handler(func=lambda message: message.text == "Профиль 👤")
 def profile(message):
     user_id = message.chat.id
-    user_data = cur.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+    # Получаем информацию о пользователе из базы данных
+    cur.execute("SELECT * FROM users WHERE id = %s", (user_id,))
+    user_data = cur.fetchone()
     print(user_data)  # Выводите результат для проверки
 
     if user_data:
@@ -206,18 +212,21 @@ def profile(message):
         # Получаем информацию о пригласившем пользователе
         referrer_info = ""
         if referrer_id:
-            referrer_data = cur.execute("SELECT first_name, username FROM users WHERE id = ?", (referrer_id,)).fetchone()
+            cur.execute("SELECT first_name, username FROM users WHERE id = %s", (referrer_id,))
+            referrer_data = cur.fetchone()
             if referrer_data:
                 referrer_name = referrer_data[0]
                 referrer_username = referrer_data[1]
                 referrer_info = f"Вас пригласил: {referrer_name} (@{referrer_username})\n"
 
         # Получаем количество сообщений пользователя из таблицы user_stats
-        message_count = cur.execute("SELECT message_count FROM user_stats WHERE user_id = ?", (user_id,)).fetchone()
+        cur.execute("SELECT message_count FROM user_stats WHERE user_id = %s", (user_id,))
+        message_count = cur.fetchone()
         message_count = message_count[0] if message_count else 0
 
         # Получаем дату последней активности пользователя из таблицы user_stats
-        last_activity_date = cur.execute("SELECT last_message_date FROM user_stats WHERE user_id = ? ORDER BY last_message_date DESC LIMIT 1", (user_id,)).fetchone()
+        cur.execute("SELECT last_message_date FROM user_stats WHERE user_id = %s ORDER BY last_message_date DESC LIMIT 1", (user_id,))
+        last_activity_date = cur.fetchone()
         last_activity_date = last_activity_date[0] if last_activity_date else "Нет данных"
 
         # Формируем сообщение профиля с учетом количества сообщений, репутации и информации о пригласившем пользователе
@@ -231,6 +240,7 @@ def profile(message):
         bot.send_photo(user_id, media.profile_img, caption=profile_message, reply_markup=tasks_keyboard)
     else:
         bot.send_message(user_id, "Вы еще не зарегистрированы")
+
 
 
 
@@ -261,11 +271,11 @@ def profile_tasks_handler(call):
 
 
 def add_completed_task(user_id, task_name):
-    cur.execute("INSERT OR IGNORE INTO completed_tasks (user_id, task_name) VALUES (?, ?)", (user_id, task_name))
-    con.commit()
+    cur.execute("INSERT INTO completed_tasks (user_id, task_name) VALUES (%s, %s)", (user_id, task_name))
+    mydb.commit()
 
 def check_task_completed(user_id, task_name):
-    cur.execute("SELECT * FROM completed_tasks WHERE user_id = ? AND task_name = ?", (user_id, task_name))
+    cur.execute("SELECT * FROM completed_tasks WHERE user_id = %s AND task_name = %s", (user_id, task_name))
     return cur.fetchone() is not None
 
 
@@ -273,11 +283,12 @@ def check_task_completed(user_id, task_name):
 @bot.callback_query_handler(func=lambda call: call.data == "check_10_messages")
 def check_10_messages_handler(call):
     user_id = call.from_user.id
-    message_count = cur.execute("SELECT message_count FROM user_stats WHERE user_id = ?", (user_id,)).fetchone()[0]
+    cur.execute("SELECT message_count FROM user_stats WHERE user_id = %s", (user_id,))
+    message_count = cur.fetchone()[0]
 
     if message_count >= 10 and not check_task_completed(user_id, "check_10_messages"):
-        cur.execute("UPDATE users SET reputation = reputation + 50 WHERE id = ?", (user_id,))
-        con.commit()
+        cur.execute("UPDATE users SET reputation = reputation + 50 WHERE id = %s", (user_id,))
+        mydb.commit()
         add_completed_task(user_id, "check_10_messages")  # Добавляем задание в список выполненных
         bot.answer_callback_query(call.id, text="Вы получили +50 очков репутации", show_alert=True)
     elif check_task_completed(user_id, "check_10_messages"):
@@ -288,11 +299,12 @@ def check_10_messages_handler(call):
 @bot.callback_query_handler(func=lambda call: call.data == "check_30_messages")
 def check_30_messages_handler(call):
     user_id = call.from_user.id
-    message_count = cur.execute("SELECT message_count FROM user_stats WHERE user_id = ?", (user_id,)).fetchone()[0]
+    cur.execute("SELECT message_count FROM user_stats WHERE user_id = %s", (user_id,))
+    message_count = cur.fetchone()[0]
 
     if message_count >= 30 and not check_task_completed(user_id, "check_30_messages"):
-        cur.execute("UPDATE users SET reputation = reputation + 200 WHERE id = ?", (user_id,))
-        con.commit()
+        cur.execute("UPDATE users SET reputation = reputation + 200 WHERE id = %s", (user_id,))
+        mydb.commit()
         add_completed_task(user_id, "check_30_messages")  # Добавляем задание в список выполненных
         bot.answer_callback_query(call.id, text="Вы получили +200 очков репутации", show_alert=True)
     elif check_task_completed(user_id, "check_30_messages"):
@@ -303,17 +315,18 @@ def check_30_messages_handler(call):
 @bot.callback_query_handler(func=lambda call: call.data == "check_5_referrals")
 def check_5_referrals_handler(call):
     user_id = call.from_user.id
-    referrals_count = cur.execute("SELECT referrals FROM users WHERE id = ?", (user_id,)).fetchone()[0]
+    cur.execute("SELECT referrals FROM users WHERE id = %s", (user_id,))
+    referrals_count = cur.fetchone()[0]
 
     if referrals_count >= 5 and not check_task_completed(user_id, "check_5_referrals"):
-        cur.execute("UPDATE users SET reputation = reputation + 200 WHERE id = ?", (user_id,))
-        con.commit()
+        cur.execute("UPDATE users SET reputation = reputation + 200 WHERE id = %s", (user_id,))
+        mydb.commit()
         add_completed_task(user_id, "check_5_referrals")  # Добавляем задание в список выполненных
         bot.answer_callback_query(call.id, text="Вы получили +200 очков репутации", show_alert=True)
     elif check_task_completed(user_id, "check_5_referrals"):
         bot.answer_callback_query(call.id, text="Это задание уже выполнено", show_alert=True)
     else:
-        bot.answer_callback_query(call.id, text="У вас недостаточно реферралов")
+        bot.answer_callback_query(call.id, text="У вас недостаточно рефералов")
 
 @bot.callback_query_handler(func=lambda call: call.data == "close")
 def close_handler(call):
