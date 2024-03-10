@@ -36,7 +36,7 @@ cur.execute('''CREATE TABLE IF NOT EXISTS completed_tasks (
     id INTEGER PRIMARY KEY,
     user_id INTEGER,
     task_name TEXT,
-    UNIQUE(user_id, task_name)
+    UNIQUE(user_id, task_name(255))  # Указываем длину ключа для колонки task_name
 );''')
 
 # Ваш бот
