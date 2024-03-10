@@ -201,12 +201,15 @@ def profile(message):
         referrer_id = user_data[7]
         reputation = user_data[8]
 
+        # Получаем текущую дату и время
+        current_datetime = datetime.now()
+        
         # Получаем дату регистрации пользователя
         registration_date = user_data[4]
         registration_datetime = datetime.strptime(registration_date, "%Y-%m-%d %H:%M:%S")
-
+        
         # Вычисляем разницу в днях между текущей датой и датой регистрации
-        days_since_registration = (datetime.now() - registration_datetime).days
+        days_since_registration = (current_datetime - registration_datetime).days
 
 
         # Получаем информацию о пригласившем пользователе
