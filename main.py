@@ -188,6 +188,7 @@ def profile(message):
     # Получаем информацию о пользователе из базы данных
     cur.execute("SELECT * FROM users WHERE id = %s", (user_id,))
     user_data = cur.fetchone()
+    
 
     if user_data:
         referrals_count = user_data[5]
@@ -207,6 +208,7 @@ def profile(message):
         
         # Вычисляем разницу в днях между текущей датой и датой регистрации
         days_since_registration = (current_datetime - registration_datetime).days
+        print(days_since_registration)
 
         # Получаем информацию о пригласившем пользователе
         referrer_info = ""
@@ -222,6 +224,7 @@ def profile(message):
         cur.execute("SELECT message_count FROM user_stats WHERE user_id = %s", (user_id,))
         message_count = cur.fetchone()
         message_count = message_count[0] if message_count else 0
+        print(message_count)
 
        # Получаем дату последней активности пользователя из таблицы user_stats
         cur.execute("SELECT last_message_date FROM user_stats WHERE user_id = %s ORDER BY last_message_date DESC LIMIT 1", (user_id,))
