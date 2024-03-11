@@ -229,8 +229,8 @@ def profile(message):
         message_count = message_count[0] if message_count else 0
 
         # Получаем дату последней активности пользователя из таблицы user_stats
-        cursor.execute("SELECT last_message_date FROM user_stats WHERE user_id = %s ORDER BY last_message_date DESC LIMIT 1", (user_id,))
-        last_activity_date_result = cursor.fetchone()
+        cur.execute("SELECT last_message_date FROM user_stats WHERE user_id = %s ORDER BY last_message_date DESC LIMIT 1", (user_id,))
+        last_activity_date_result = cur.fetchone()
         
         if last_activity_date_result:
             last_activity_date = last_activity_date_result[0]  # Получаем дату из результата запроса
