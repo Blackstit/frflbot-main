@@ -263,7 +263,7 @@ def check_10_messages_handler(call):
 
         if message_count >= 10 and not check_task_completed(user_id, "check_10_messages"):
             # Логика для обновления очков репутации пользователя в базе данных
-            users_stats_collection.update_one({"user_id": user_id}, {"$inc": {"reputation": 50}})
+            users_collection.update_one({"id": user_id}, {"$inc": {"reputation": 50}})
             add_completed_task(user_id, "check_10_messages")  # Добавляем задание в список выполненных
             bot.answer_callback_query(call.id, text="Вы получили +50 очков репутации", show_alert=True)
         elif check_task_completed(user_id, "check_10_messages"):
