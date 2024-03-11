@@ -254,22 +254,25 @@ def check_task_completed(user_id, task_name):
 @bot.callback_query_handler(func=lambda call: call.data == "check_10_messages")
 def check_10_messages_handler(call):
     user_id = call.from_user.id
-    user = users_collection.find_one({"user_id": user_id})
 
-    if user:
-        message_count = user.get("message_count", 0)
+    # Получаем данные о пользователе из коллекции users_stats
+    user_stats_data = users_stats_collection.find_one({'user_id': user_id})
+
+    if user_stats_data:
+        message_count = user_stats_data.get("message_count", 0)
 
         if message_count >= 10 and not check_task_completed(user_id, "check_10_messages"):
             # Логика для обновления очков репутации пользователя в базе данных
-            users_collection.update_one({"user_id": user_id}, {"$inc": {"reputation": 50}})
+            users_stats_collection.update_one({"user_id": user_id}, {"$inc": {"reputation": 50}})
             add_completed_task(user_id, "check_10_messages")  # Добавляем задание в список выполненных
             bot.answer_callback_query(call.id, text="Вы получили +50 очков репутации", show_alert=True)
         elif check_task_completed(user_id, "check_10_messages"):
             bot.answer_callback_query(call.id, text="Это задание уже выполнено", show_alert=True)
         else:
-            bot.answer_callback_query(call.id, text="У вас недостаточно сообщений в чате")
+            bot.answer_callback_query(call.id, text="У вас недостаточно сообщений в чате", show_alert=True)
     else:
-        bot.answer_callback_query(call.id, text="Пользователь не найден", show_alert=True)
+        bot.answer_callback_query(call.id, text="Пользователь не найден в базе данных", show_alert=True)
+
 
 # Аналогичные обработчики для других заданий, например, check_30_messages, check_5_referrals, и т. д.
 # ...
