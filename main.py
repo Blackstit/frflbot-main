@@ -161,17 +161,32 @@ def about_us(message):
 @bot.message_handler(func=lambda message: message.text == "Профиль 👤")
 def profile(message):
     user_id = message.chat.id
+
+    # Получаем данные пользователя из коллекции users
     user_data = users_collection.find_one({"id": user_id})
 
     if user_data:
-        referrals_count = user_data['referrals']
-        referral_code = user_data['referral_code']
-        username = user_data['username'] if user_data['username'] else "Нет"
-        first_name = user_data['first_name'] if user_data['first_name'] else "Нет"
-        last_name = user_data['last_name'] if user_data['last_name'] else "Нет"
-        registration_date = user_data['registration_date']
-        referrer_id = user_data['referrer_id']
-        reputation = user_data['reputation']
+        # Получаем данные о пользователе из коллекции users_stats
+        user_stats_data = users_stats_collection.find_one({'user_id': user_id})
+
+        # Если данные о пользователе есть в users_stats, используем их
+        if user_stats_data:
+            username = user_stats_data.get('username', 'Нет')
+            message_count = user_stats_data.get('message_count', 0)
+            last_activity_date = user_stats_data.get('last_message_date', 'Нет данных')
+        else:
+            # Если данные о пользователе отсутствуют, устанавливаем значения по умолчанию
+            message_count = 0
+            last_activity_date = 'Нет данных'
+
+        referrals_count = user_data.get('referrals', 0)
+        referral_code = user_data.get('referral_code', 'Нет')
+        username = user_data.get('username', 'Нет')
+        first_name = user_data.get('first_name', 'Нет')
+        last_name = user_data.get('last_name', 'Нет')
+        registration_date = user_data.get('registration_date', 'Нет')
+        referrer_id = user_data.get('referrer_id', None)
+        reputation = user_data.get('reputation', 0)
 
         # Получаем дату регистрации пользователя
         registration_datetime = datetime.strptime(registration_date, "%Y-%m-%d %H:%M:%S")
@@ -184,16 +199,9 @@ def profile(message):
         if referrer_id:
             referrer_data = users_collection.find_one({"id": referrer_id})
             if referrer_data:
-                referrer_name = referrer_data['first_name']
-                referrer_username = referrer_data['username']
+                referrer_name = referrer_data.get('first_name', 'Нет')
+                referrer_username = referrer_data.get('username', 'Нет')
                 referrer_info = f"Вас пригласил: {referrer_name} (@{referrer_username})\n"
-
-        # Получаем количество сообщений пользователя из коллекции completed_tasks
-        message_count = tasks_collection.count_documents({"user_id": user_id})
-
-        # Получаем дату последней активности пользователя
-        last_activity_date = tasks_collection.find_one({"user_id": user_id}, sort=[('timestamp', pymongo.DESCENDING)])
-        last_activity_date = last_activity_date['timestamp'].strftime("%Y-%m-%d %H:%M:%S") if last_activity_date else "Нет данных"
 
         # Формируем сообщение профиля с учетом количества сообщений, репутации и информации о пригласившем пользователе
         profile_message = f"Имя: {first_name}\nФамилия: {last_name}\nИмя пользователя: @{username}\nДней в боте: {days_since_registration}\nПоследняя активность: {last_activity_date}\nРеферралы: {referrals_count}\nКоличество сообщений: {message_count}\n$AGAVA: {reputation}\n\n{referrer_info}Ваша реферальная ссылка: t.me/Cyndycate_invaterbot?start={referral_code}"
@@ -206,6 +214,7 @@ def profile(message):
         bot.send_photo(user_id, media.profile_img, caption=profile_message, reply_markup=tasks_keyboard)
     else:
         bot.send_message(user_id, "Вы еще не зарегистрированы")
+
 
 
 
