@@ -40,7 +40,7 @@ cur.execute('''CREATE TABLE IF NOT EXISTS completed_tasks (
 );''')
 
 # Ваш бот
-token = "YOUR_TELEGRAM_BOT_TOKEN"
+token = "6536069812:AAGnGeg6oXtsvl7CcRZgb0PfV5CyhSb3pyI"
 bot = telebot.TeleBot(token)
 
 # ID вашего канала
@@ -259,6 +259,9 @@ def profile(message):
 
 
 
+
+
+
 @bot.callback_query_handler(func=lambda call: call.data == "profile_tasks")
 def profile_tasks_handler(call):
     # Создаем клавиатуру для заданий
@@ -347,9 +350,7 @@ def close_handler(call):
     bot.delete_message(call.message.chat.id, call.message.message_id)
 
 
-def close_connections():
-    cur.close()
-    mydb.close()
+
 
 if __name__ == "__main__":
     bot.polling()
