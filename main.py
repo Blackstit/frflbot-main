@@ -75,22 +75,18 @@ def start(message):
     last_name = message.chat.last_name
     registration_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    # Проверяем, передан ли реферальный код в команде "/start"
-    referer_code = None
-    parts = message.text.split()
-    if len(parts) > 1:
-        referer_code = parts[1]
-
-    print(f"{username} - Реферральный код: {referer_code} мессадж: {message.text}")
-
     # Проверяем, зарегистрирован ли уже пользователь
     cur.execute("SELECT * FROM users WHERE id = %s", (user_id,))
     user_data = cur.fetchone()
-    print(f"{username} - Старт. юзер дата: {user_data}")
     if not user_data:
+        # Проверяем, что есть хотя бы одно имя пользователя
+        if not username and not first_name:
+            bot.send_message(user_id, "Вы должны установить хотя бы одно имя пользователя или имя")
+            return
+
         # Генерируем уникальный реферральный код
         referral_code = generate_referral_code()
-        print(f"{username} - Старт. реф код ген: {referral_code}")
+
         # Поиск пользователя с реферральным кодом
         referrer_id = None
         if referral_code:
@@ -98,14 +94,14 @@ def start(message):
             referrer_data = cur.fetchone()
             if referrer_data:
                 referrer_id = referrer_data[0]
-    
+
         # Добавляем пользователя в базу данных
         cur.execute("INSERT INTO users (id, username, first_name, last_name, registration_date, referrals, referral_code, referrer_id) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
                     (user_id, username, first_name, last_name, registration_date, 0, referral_code, referrer_id))
         # Вставляем запись в таблицу user_stats
         cur.execute("INSERT INTO user_stats (user_id, username, message_count) VALUES (%s, %s, 0)", (user_id, username))
         mydb.commit()
-    
+
         # Отправляем сообщение о подписке и кнопку профиля
         bot.send_message(user_id, f"Добро пожаловать в мир AGAVA CRYPTO!", reply_markup=клавиатура_профиля)
         bot.send_message(user_id, """Приветствуем тебя в нашем комьюнити крипто-энтузиастов!
