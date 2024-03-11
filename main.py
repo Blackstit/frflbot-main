@@ -229,9 +229,16 @@ def profile(message):
         message_count = message_count[0] if message_count else 0
 
         # Получаем дату последней активности пользователя из таблицы user_stats
-        cur.execute("SELECT last_message_date FROM user_stats WHERE user_id = %s ORDER BY last_message_date DESC LIMIT 1", (user_id,))
-        last_activity_date = cur.fetchone()
-        last_activity_date = last_activity_date[0].strftime("%Y-%m-%d %H:%M:%S") if last_activity_date else "Нет данных"
+        cursor.execute("SELECT last_message_date FROM user_stats WHERE user_id = %s ORDER BY last_message_date DESC LIMIT 1", (user_id,))
+        last_activity_date_result = cursor.fetchone()
+        
+        if last_activity_date_result:
+            last_activity_date = last_activity_date_result[0]  # Получаем дату из результата запроса
+        
+            # Преобразуем дату в строку в нужном формате
+            last_activity_formatted = last_activity_date.strftime("%d.%m.%Y %H:%M:%S")
+        else:
+            last_activity_formatted = "Нет данных"
 
         # Формируем сообщение профиля с учетом количества сообщений, репутации и информации о пригласившем пользователе
         profile_message = f"Имя: {first_name}\nФамилия: {last_name}\nИмя пользователя: @{username}\nДней в боте: {days_since_registration}\nПоследняя активность: {last_activity_date}\nРеферралы: {referrals_count}\nКоличество сообщений: {message_count}\n$AGAVA: {reputation}\n\n{referrer_info}Ваша реферальная ссылка: t.me/Cyndycate_invaterbot?start={referral_code}"
