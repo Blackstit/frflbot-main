@@ -298,16 +298,16 @@ def check_30_messages_handler(call):
 
 
 @bot.callback_query_handler(func=lambda call: call.data == "check_5_referrals")
-def check_30_messages_handler(call):
+def check_5_referrals_handler(call):
     user_id = call.from_user.id
 
-    # Получаем данные о пользователе из коллекции users_stats
-    user_stats_data = users_collection.find_one({'id': user_id})
+    # Получаем данные о пользователе из коллекции users
+    user_data = users_collection.find_one({'id': user_id})
 
-    if user_stats_data:
-        ref_count = user_stats_data.get("referrals", 0)
+    if user_data:
+        ref_count = user_data.get("referrals", 0)
 
-        if message_count >= 5 and not check_task_completed(user_id, "check_5_referrals"):
+        if ref_count >= 5 and not check_task_completed(user_id, "check_5_referrals"):
             # Логика для обновления очков репутации пользователя в базе данных
             users_collection.update_one({"id": user_id}, {"$inc": {"reputation": 100}})
             add_completed_task(user_id, "check_5_referrals")  # Добавляем задание в список выполненных
