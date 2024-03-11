@@ -18,6 +18,7 @@ client = pymongo.MongoClient(MONGO_URL)
 db = client['test']  # Замените 'your_database_name' на имя вашей базы данных
 users_collection = db['users']
 tasks_collection = db['completed_tasks']
+users_stats_collection = db['users_stats']
 
 # Ваш бот
 token = os.getenv('TELEGRAM_BOT_TOKEN_MAIN')
