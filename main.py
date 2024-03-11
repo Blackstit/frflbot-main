@@ -6,6 +6,7 @@ from datetime import datetime
 import random
 import string
 import media
+import time
 
 # Загрузка переменных окружения из файла .env
 from dotenv import load_dotenv
@@ -267,5 +268,9 @@ def check_10_messages_handler(call):
 def close_handler(call):
     bot.delete_message(call.message.chat.id, call.message.message_id)
 
-if __name__ == "__main__":
-    bot.polling()
+while True:
+    try:
+        bot.polling(none_stop=True)
+    except Exception as e:
+        print(f"Error: {e}")
+        time.sleep(5)  # Подождите 5 секунд перед повторной попыткой
