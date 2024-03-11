@@ -297,8 +297,28 @@ def check_30_messages_handler(call):
         bot.answer_callback_query(call.id, text="Пользователь не найден в базе данных", show_alert=True)
 
 
-# Аналогичные обработчики для других заданий, например, check_30_messages, check_5_referrals, и т. д.
-# ...
+@bot.callback_query_handler(func=lambda call: call.data == "check_5_referrals")
+def check_30_messages_handler(call):
+    user_id = call.from_user.id
+
+    # Получаем данные о пользователе из коллекции users_stats
+    user_stats_data = users_collection.find_one({'id': user_id})
+
+    if user_stats_data:
+        ref_count = user_stats_data.get("message_count", 0)
+
+        if message_count >= 5 and not check_task_completed(user_id, "check_5_referrals"):
+            # Логика для обновления очков репутации пользователя в базе данных
+            users_collection.update_one({"id": user_id}, {"$inc": {"reputation": 100}})
+            add_completed_task(user_id, "check_5_referrals")  # Добавляем задание в список выполненных
+            bot.answer_callback_query(call.id, text="Вы получили +100 токенов", show_alert=True)
+        elif check_task_completed(user_id, "check_5_referrals"):
+            bot.answer_callback_query(call.id, text="Это задание уже выполнено", show_alert=True)
+        else:
+            bot.answer_callback_query(call.id, text="У вас недостаточно рефераллов", show_alert=True)
+    else:
+        bot.answer_callback_query(call.id, text="Пользователь не найден в базе данных", show_alert=True)
+
 
 @bot.callback_query_handler(func=lambda call: call.data == "close")
 def close_handler(call):
