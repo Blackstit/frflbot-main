@@ -249,6 +249,7 @@ def profile(message):
         bot.send_photo(user_id, media.profile_img, caption=profile_message, reply_markup=tasks_keyboard)
     else:
         bot.send_message(user_id, "Вы еще не зарегистрированы")
+        
 
 
 
