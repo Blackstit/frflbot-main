@@ -90,7 +90,7 @@ def start(message):
         # Поиск пользователя с реферральным кодом
         referrer_id = None
         if referral_code:
-            cur.execute("SELECT id FROM users WHERE referral_code = %s", (referer_code,))
+            cur.execute("SELECT id FROM users WHERE referral_code = %s", (referral_code,))
             referrer_data = cur.fetchone()
             if referrer_data:
                 referrer_id = referrer_data[0]
@@ -114,7 +114,6 @@ def start(message):
     else:
         # Отправляем приветственное сообщение
         bot.send_message(user_id, "С возвращением!", reply_markup=клавиатура_профиля)
-
 
 @bot.callback_query_handler(func=lambda call: call.data == "check")
 def c_listener(call):
