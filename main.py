@@ -305,7 +305,7 @@ def check_30_messages_handler(call):
     user_stats_data = users_collection.find_one({'id': user_id})
 
     if user_stats_data:
-        ref_count = user_stats_data.get("message_count", 0)
+        ref_count = user_stats_data.get("referrals", 0)
 
         if message_count >= 5 and not check_task_completed(user_id, "check_5_referrals"):
             # Логика для обновления очков репутации пользователя в базе данных
