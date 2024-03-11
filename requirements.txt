@@ -1,2 +1,2 @@
 pyTelegramBotAPI
-mysql-connector-python
+pymongo
