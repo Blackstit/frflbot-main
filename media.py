@@ -1,1 +1,1 @@
-profile_img = 'https://ibb.co/zZPkmT5'
+profile_img = 'https://ibb.co/yBhLZbZ'
