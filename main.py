@@ -199,6 +199,7 @@ def profile(message):
         registration_date = user_data[4]
         referrer_id = user_data[7]
         reputation = user_data[8]
+        print(user_data)
 
         # Получаем текущую дату и время
         current_datetime = datetime.now()
