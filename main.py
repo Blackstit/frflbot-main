@@ -19,7 +19,7 @@ users_collection = db['users']
 tasks_collection = db['completed_tasks']
 
 # Ваш бот
-token = "ваш_токен"
+token = os.getenv('TELEGRAM_BOT_TOKEN')
 bot = telebot.TeleBot(token)
 
 # ID вашего канала
