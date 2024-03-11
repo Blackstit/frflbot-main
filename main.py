@@ -222,10 +222,13 @@ def profile(message):
                 referrer_info = f"Вас пригласил: {referrer_name} (@{referrer_username})\n"
 
         # Получаем количество сообщений пользователя из таблицы user_stats
-        cur.execute("SELECT message_count FROM user_stats WHERE user_id = %s", (user_id,))
-        message_count = cur.fetchone()
-        message_count = message_count[0] if message_count else 0
-        print(message_count)
+        try:
+            cur.execute("SELECT message_count FROM user_stats WHERE user_id = %s", (user_id,))
+            message_count_result = cur.fetchone()
+            message_count = message_count_result[0] if message_count_result else 0
+            print("Message count retrieved successfully:", message_count)
+        except Exception as e:
+            print("Error while fetching message count:", e)
 
        # Получаем дату последней активности пользователя из таблицы user_stats
         cur.execute("SELECT last_message_date FROM user_stats WHERE user_id = %s ORDER BY last_message_date DESC LIMIT 1", (user_id,))
