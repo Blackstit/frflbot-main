@@ -246,10 +246,9 @@ def profile(message):
         task_button = types.InlineKeyboardButton("Задания 🎯 ", callback_data="profile_tasks")
         tasks_keyboard.add(task_button)
 
-        context.bot.send_photo(user_id, media.profile_img, caption=profile_message, reply_markup=tasks_keyboard)
+        bot.send_photo(user_id, media.profile_img, caption=profile_message, reply_markup=tasks_keyboard)
     else:
-        context.bot.send_message(user_id, "Вы еще не зарегистрированы")
-
+        bot.send_message(user_id, "Вы еще не зарегистрированы")
 
 
 
