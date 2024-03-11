@@ -186,8 +186,8 @@ def profile(message):
     user_id = message.chat.id
 
     # Получаем информацию о пользователе из базы данных
-    cur.execute("SELECT * FROM users WHERE id = %s", (user_id,))
-    user_data = cur.fetchone()
+    cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
+    user_data = cursor.fetchone()
 
     if user_data:
         referrals_count = user_data[5]
@@ -211,21 +211,21 @@ def profile(message):
         # Получаем информацию о пригласившем пользователе
         referrer_info = ""
         if referrer_id:
-            cur.execute("SELECT first_name, username FROM users WHERE id = %s", (referrer_id,))
-            referrer_data = cur.fetchone()
+            cursor.execute("SELECT first_name, username FROM users WHERE id = %s", (referrer_id,))
+            referrer_data = cursor.fetchone()
             if referrer_data:
                 referrer_name = referrer_data[0]
                 referrer_username = referrer_data[1]
                 referrer_info = f"Вас пригласил: {referrer_name} (@{referrer_username})\n"
 
         # Получаем количество сообщений пользователя из таблицы user_stats
-        cur.execute("SELECT message_count FROM user_stats WHERE user_id = %s", (user_id,))
-        message_count = cur.fetchone()
+        cursor.execute("SELECT message_count FROM user_stats WHERE user_id = %s", (user_id,))
+        message_count = cursor.fetchone()
         message_count = message_count[0] if message_count else 0
 
        # Получаем дату последней активности пользователя из таблицы user_stats
-        cur.execute("SELECT last_message_date FROM user_stats WHERE user_id = %s ORDER BY last_message_date DESC LIMIT 1", (user_id,))
-        last_activity_date_result = cur.fetchone()
+        cursor.execute("SELECT last_message_date FROM user_stats WHERE user_id = %s ORDER BY last_message_date DESC LIMIT 1", (user_id,))
+        last_activity_date_result = cursor.fetchone()
         
         if last_activity_date_result:
             last_activity_date = last_activity_date_result[0]  # Получаем дату из результата запроса
@@ -246,9 +246,10 @@ def profile(message):
         task_button = types.InlineKeyboardButton("Задания 🎯 ", callback_data="profile_tasks")
         tasks_keyboard.add(task_button)
 
-        bot.send_photo(user_id, media.profile_img, caption=profile_message, reply_markup=tasks_keyboard)
+        context.bot.send_photo(user_id, media.profile_img, caption=profile_message, reply_markup=tasks_keyboard)
     else:
-        bot.send_message(user_id, "Вы еще не зарегистрированы")
+        context.bot.send_message(user_id, "Вы еще не зарегистрированы")
+
 
 
 
