@@ -25,11 +25,11 @@ token = os.getenv('TELEGRAM_BOT_TOKEN_MAIN')
 bot = telebot.TeleBot(token)
 
 # ID вашего канала
-chan_id = -1001850988863
+chan_id = -1002109241014
 
 # Клавиатура для проверки подписки
 клавиатура_inline = telebot.types.InlineKeyboardMarkup()
-подписаться = telebot.types.InlineKeyboardButton(text="Подписаться", url="https://t.me/agavacrypto")
+подписаться = telebot.types.InlineKeyboardButton(text="Подписаться", url="https://t.me/fireflycomm")
 вступить_в_чат = telebot.types.InlineKeyboardButton(text="Вступить в чат", url="https://t.me/+TIBhBif_kQYxZjM0")
 проверить = telebot.types.InlineKeyboardButton(text="Проверить", callback_data="check")
 клавиатура_inline.add(подписаться)
@@ -91,14 +91,14 @@ def start(message):
         users_collection.insert_one(user)
 
         # Отправляем сообщение о подписке и кнопку профиля
-        bot.send_message(user_id, f"Добро пожаловать в мир AGAVA CRYPTO!", reply_markup=клавиатура_профиля)
+        bot.send_message(user_id, f"Добро пожаловать в мир FireFly Crypto!", reply_markup=клавиатура_профиля)
         bot.send_message(user_id, """Приветствуем тебя в нашем комьюнити крипто-энтузиастов!
 
 Мы ищем активных участников, готовых вкладывать свое время и энергию в наше сообщество, чтобы вместе стремиться к успеху!
 
 Прежде чем присоединиться к нам, подпишись на наш Telegram-канал и создай свой профиль в этом боте.
 
-Здесь ты сможешь отслеживать свой прогресс, получать награды и поощрения от AGAVA CRYPTO! Давай двигаться к успеху вместе!""", reply_markup=клавиатура_inline)
+Здесь ты сможешь отслеживать свой прогресс, получать награды и поощрения от FireFly Crypto! Давай двигаться к успеху вместе!""", reply_markup=клавиатура_inline)
     else:
         # Отправляем приветственное сообщение
         bot.send_message(user_id, "С возвращением!", reply_markup=клавиатура_профиля)
@@ -125,7 +125,7 @@ def c_listener(call):
                     referrals_count = referrer_data['referrals']
                     message_text = f"""🎉 У вас новый реферал! {referrer_name} (@{referrer_username})
 
-                    Вам начислено +10 $AGAVA!!!!
+                    Вам начислено +10 $FRFL!!!!
                     Всего рефералов: {referrals_count}"""
                     bot.send_message(referrer_id, message_text)
 
@@ -145,12 +145,12 @@ def about_us(message):
     about_text = ("Приветствуем тебя в нашем комьюнити крипто-энтузиастов!\n\n"
                   "Мы ищем активных участников, готовых вкладывать свое время и энергию в наше сообщество, чтобы вместе стремиться к успеху!\n\n"
                   "Прежде чем присоединиться к нам, подпишись на наш Telegram-канал и создай свой профиль в этом боте.\n\n"
-                  "Здесь ты сможешь отслеживать свой прогресс, получать награды и поощрения от AGAVA CRYPTO! Давай двигаться к успеху вместе!")
+                  "Здесь ты сможешь отслеживать свой прогресс, получать награды и поощрения от FireFly Crypto! Давай двигаться к успеху вместе!")
 
     # Создание инлайн кнопок
     keyboard = types.InlineKeyboardMarkup()
-    btn_agava_crypto = types.InlineKeyboardButton("AGAVA CRYPTO", url="https://t.me/agavacrypto")
-    btn_agava_crypto_chat = types.InlineKeyboardButton("AGAVA CRYPTO CHAT", url="https://t.me/agavacryptochat")
+    btn_agava_crypto = types.InlineKeyboardButton("FireFly Crypto", url="https://t.me/fireflycomm")
+    btn_agava_crypto_chat = types.InlineKeyboardButton("FireFly Crypto Chay", url="https://t.me/+TIBhBif_kQYxZjM0")
     
     # Добавление кнопок на клавиатуру
     keyboard.row(btn_agava_crypto)
@@ -205,7 +205,7 @@ def profile(message):
                 referrer_info = f"Вас пригласил: {referrer_name} (@{referrer_username})\n"
 
         # Формируем сообщение профиля с учетом количества сообщений, репутации и информации о пригласившем пользователе
-        profile_message = f"Имя: {first_name}\nФамилия: {last_name}\nИмя пользователя: @{username}\nДней в боте: {days_since_registration}\nПоследняя активность: {last_activity_date}\nРеферралы: {referrals_count}\nКоличество сообщений: {message_count}\n$AGAVA: {reputation}\n\n{referrer_info}Ваша реферальная ссылка: t.me/Cyndycate_invaterbot?start={referral_code}"
+        profile_message = f"Имя: {first_name}\nФамилия: {last_name}\nИмя пользователя: @{username}\nДней в боте: {days_since_registration}\nПоследняя активность: {last_activity_date}\nРеферралы: {referrals_count}\nКоличество сообщений: {message_count}\n$FRFL: {reputation}\n\n{referrer_info}Ваша реферальная ссылка: t.me/Cyndycate_invaterbot?start={referral_code}"
 
         # Создаем клавиатуру для заданий
         tasks_keyboard = types.InlineKeyboardMarkup(row_width=1)
@@ -242,7 +242,7 @@ def profile_tasks_handler(call):
     tasks_keyboard.add(button_close)
 
     # Отправляем сообщение пользователю
-    bot.send_message(call.message.chat.id, "Выполняй задания и зарабатывай $AGAVA", reply_markup=tasks_keyboard)
+    bot.send_message(call.message.chat.id, "Выполняй задания и зарабатывай $FRFL", reply_markup=tasks_keyboard)
 
 
 def add_completed_task(user_id, task_name):
