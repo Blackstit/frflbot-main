@@ -228,15 +228,18 @@ def profile(message):
         message_count = cur.fetchone()
         message_count = message_count[0] if message_count else 0
 
-        # Получаем дату последней активности пользователя из таблицы user_stats
+       # Получаем дату последней активности пользователя из таблицы user_stats
         cur.execute("SELECT last_message_date FROM user_stats WHERE user_id = %s ORDER BY last_message_date DESC LIMIT 1", (user_id,))
         last_activity_date_result = cur.fetchone()
         
         if last_activity_date_result:
             last_activity_date = last_activity_date_result[0]  # Получаем дату из результата запроса
         
-            # Преобразуем дату в строку в нужном формате
-            last_activity_formatted = last_activity_date.strftime("%d.%m.%Y %H:%M:%S")
+            # Проверяем, что дата не пустая
+            if last_activity_date:
+                last_activity_formatted = last_activity_date.strftime("%d.%m.%Y %H:%M:%S")  # Преобразуем дату в нужный формат
+            else:
+                last_activity_formatted = "Нет данных"
         else:
             last_activity_formatted = "Нет данных"
 
