@@ -125,8 +125,8 @@ def c_listener(call):
                     referrals_count = referrer_data['referrals']
                     message_text = f"""🎉 У вас новый реферал! {referrer_name} (@{referrer_username})
 
-                    Вам начислено +10 $FRFL!!!!
-                    Всего рефералов: {referrals_count}"""
+Вам начислено +10 $FRFL!!!!
+Всего рефералов: {referrals_count}"""
                     bot.send_message(referrer_id, message_text)
 
                 # Начисление 10 очков репутации за нового реферала
@@ -205,7 +205,7 @@ def profile(message):
                 referrer_info = f"Вас пригласил: {referrer_name} (@{referrer_username})\n"
 
         # Формируем сообщение профиля с учетом количества сообщений, репутации и информации о пригласившем пользователе
-        profile_message = f"Имя: {first_name}\nФамилия: {last_name}\nИмя пользователя: @{username}\nДней в боте: {days_since_registration}\nПоследняя активность: {last_activity_date}\nРеферралы: {referrals_count}\nКоличество сообщений: {message_count}\n$FRFL: {reputation}\n\n{referrer_info}Ваша реферальная ссылка: t.me/Cyndycate_invaterbot?start={referral_code}"
+        profile_message = f"Имя: {first_name}\nФамилия: {last_name}\nИмя пользователя: @{username}\nДней в боте: {days_since_registration}\nПоследняя активность: {last_activity_date}\nРеферралы: {referrals_count}\nКоличество сообщений: {message_count}\n$FRFL: {reputation}\n\n{referrer_info}Ваша реферальная ссылка: t.me/FireFlyCCbot?start={referral_code}"
 
         # Создаем клавиатуру для заданий
         tasks_keyboard = types.InlineKeyboardMarkup(row_width=1)
