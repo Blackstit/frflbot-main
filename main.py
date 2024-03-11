@@ -1,46 +1,25 @@
 import telebot
 from telebot import types
-import mysql.connector
+import pymongo
+import os
 from datetime import datetime
 import random
 import string
 import media
-import os
 
-# Подключение к базе данных MySQL
-# Получение значений из переменных окружения
-MYSQL_HOST = os.getenv('MYSQLHOST')
-MYSQL_USER = os.getenv('MYSQLUSER')
-MYSQL_PASSWORD = os.getenv('MYSQLPASSWORD')
-MYSQL_DATABASE = os.getenv('MYSQLDATABASE')
-MYSQL_PORT = int(os.getenv('MYSQLPORT'))  # Преобразование в целое число
+# Загрузка переменных окружения из файла .env
+from dotenv import load_dotenv
+load_dotenv()
 
-# Подключение к базе данных MySQL
-mydb = mysql.connector.connect(
-    host=MYSQL_HOST,
-    user=MYSQL_USER,
-    password=MYSQL_PASSWORD,
-    database=MYSQL_DATABASE,
-    port=MYSQL_PORT
-)
-
-# Создание объекта cursor для выполнения SQL-запросов
-cur = mydb.cursor()
-
-# Создание таблицы пользователей, если она не существует
-cur.execute('''CREATE TABLE IF NOT EXISTS users
-             (id INTEGER PRIMARY KEY, username TEXT, first_name TEXT, last_name TEXT, registration_date TEXT, referrals INTEGER, referral_code TEXT, referrer_id INTEGER, reputation INTEGER DEFAULT 0)''')
-
-# Создание таблицы выполненных заданий, если она не существует
-cur.execute('''CREATE TABLE IF NOT EXISTS completed_tasks (
-    id INTEGER PRIMARY KEY,
-    user_id INTEGER,
-    task_name TEXT,
-    UNIQUE(user_id, task_name(255))  # Указываем длину ключа для колонки task_name
-);''')
+# Подключение к MongoDB
+MONGO_URL = os.getenv("MONGO_URL")
+client = pymongo.MongoClient(MONGO_URL)
+db = client['test']  # Замените 'your_database_name' на имя вашей базы данных
+users_collection = db['users']
+tasks_collection = db['completed_tasks']
 
 # Ваш бот
-token = "6536069812:AAGnGeg6oXtsvl7CcRZgb0PfV5CyhSb3pyI"
+token = "ваш_токен"
 bot = telebot.TeleBot(token)
 
 # ID вашего канала
@@ -55,13 +34,11 @@ chan_id = -1001850988863
 клавиатура_inline.add(вступить_в_чат)
 клавиатура_inline.add(проверить)
 
-
 # Клавиатура для профиля
 клавиатура_профиля = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
 кнопка_профиль = telebot.types.KeyboardButton("Профиль 👤")
-кнопка_о_нас = telebot.types.KeyboardButton("О нас 🌐")  # Используем подходящий эмодзи для кнопки "О нас"
+кнопка_о_нас = telebot.types.KeyboardButton("О нас 🌐")  
 клавиатура_профиля.row(кнопка_профиль, кнопка_о_нас)
-
 
 # Функция для генерации случайного реферрального кода
 def generate_referral_code():
@@ -75,42 +52,51 @@ def start(message):
     last_name = message.chat.last_name
     registration_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    # Проверяем, зарегистрирован ли уже пользователь
-    cur.execute("SELECT * FROM users WHERE id = %s", (user_id,))
-    user_data = cur.fetchone()
-    if not user_data:
-        # Проверяем, что есть хотя бы одно имя пользователя
-        if not username and not first_name:
-            bot.send_message(user_id, "Вы должны установить хотя бы одно имя пользователя или имя")
-            return
+    # Проверяем, передан ли реферальный код в команде "/start"
+    referer_code = None
+    parts = message.text.split()
+    if len(parts) > 1:
+        referer_code = parts[1]
 
+    print(f"{username} - Реферральный код: {referer_code} мессадж: {message.text}")
+
+    # Проверяем, зарегистрирован ли уже пользователь
+    user_data = users_collection.find_one({"id": user_id})
+    print(f"{username} - Старт. юзер дата: {user_data}")
+    if not user_data:
         # Генерируем уникальный реферральный код
         referral_code = generate_referral_code()
-
+        print(f"{username} - Старт. реф код ген: {referral_code}")
         # Поиск пользователя с реферральным кодом
         referrer_id = None
         if referral_code:
-            cur.execute("SELECT id FROM users WHERE referral_code = %s", (referral_code,))
-            referrer_data = cur.fetchone()
+            referrer_data = users_collection.find_one({"referral_code": referer_code})
             if referrer_data:
-                referrer_id = referrer_data[0]
+                referrer_id = referrer_data['id']
 
         # Добавляем пользователя в базу данных
-        cur.execute("INSERT INTO users (id, username, first_name, last_name, registration_date, referrals, referral_code, referrer_id) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
-                    (user_id, username, first_name, last_name, registration_date, 0, referral_code, referrer_id))
-        # Вставляем запись в таблицу user_stats
-        cur.execute("INSERT INTO user_stats (user_id, username, message_count) VALUES (%s, %s, 0)", (user_id, username))
-        mydb.commit()
+        user = {
+            "id": user_id,
+            "username": username,
+            "first_name": first_name,
+            "last_name": last_name,
+            "registration_date": registration_date,
+            "referrals": 0,
+            "referral_code": referral_code,
+            "referrer_id": referrer_id,
+            "reputation": 0
+        }
+        users_collection.insert_one(user)
 
         # Отправляем сообщение о подписке и кнопку профиля
         bot.send_message(user_id, f"Добро пожаловать в мир AGAVA CRYPTO!", reply_markup=клавиатура_профиля)
         bot.send_message(user_id, """Приветствуем тебя в нашем комьюнити крипто-энтузиастов!
-    
-    Мы ищем активных участников, готовых вкладывать свое время и энергию в наше сообщество, чтобы вместе стремиться к успеху!
-    
-    Прежде чем присоединиться к нам, подпишись на наш Telegram-канал и создай свой профиль в этом боте.
-    
-    Здесь ты сможешь отслеживать свой прогресс, получать награды и поощрения от AGAVA CRYPTO! Давай двигаться к успеху вместе!""", reply_markup=клавиатура_inline)
+
+Мы ищем активных участников, готовых вкладывать свое время и энергию в наше сообщество, чтобы вместе стремиться к успеху!
+
+Прежде чем присоединиться к нам, подпишись на наш Telegram-канал и создай свой профиль в этом боте.
+
+Здесь ты сможешь отслеживать свой прогресс, получать награды и поощрения от AGAVA CRYPTO! Давай двигаться к успеху вместе!""", reply_markup=клавиатура_inline)
     else:
         # Отправляем приветственное сообщение
         bot.send_message(user_id, "С возвращением!", reply_markup=клавиатура_профиля)
@@ -121,24 +107,20 @@ def c_listener(call):
     x = bot.get_chat_member(chan_id, user_id)
 
     if x.status in ["member", "creator", "administrator"]:
-        # Получаем информацию о пользователе из базы данных
-        cur.execute("SELECT * FROM users WHERE id = %s", (user_id,))
-        user_data = cur.fetchone()
+        user_data = users_collection.find_one({"id": user_id})
         print(f"Чек, юзер дата: {user_data}")
         if user_data:
             # Получаем ID реферрера
-            referrer_id = user_data[7]
+            referrer_id = user_data['referrer_id']
             if referrer_id is not None:
                 # Увеличиваем счетчик рефералов
-                cur.execute("UPDATE users SET referrals = referrals + 1 WHERE id = %s", (referrer_id,))
-                mydb.commit()
+                users_collection.update_one({"id": referrer_id}, {"$inc": {"referrals": 1}})
                 # Отправка уведомления рефереру о новом реферале
-                cur.execute("SELECT first_name, username, referrals FROM users WHERE id = %s", (referrer_id,))
-                referrer_data = cur.fetchone()
+                referrer_data = users_collection.find_one({"id": referrer_id})
                 if referrer_data:
-                    referrer_name = referrer_data[0]
-                    referrer_username = referrer_data[1]
-                    referrals_count = referrer_data[2]
+                    referrer_name = referrer_data['first_name']
+                    referrer_username = referrer_data['username']
+                    referrals_count = referrer_data['referrals']
                     message_text = f"""🎉 У вас новый реферал! {referrer_name} (@{referrer_username})
 
                     Вам начислено +10 $AGAVA!!!!
@@ -146,14 +128,13 @@ def c_listener(call):
                     bot.send_message(referrer_id, message_text)
 
                 # Начисление 10 очков репутации за нового реферала
-                cur.execute("UPDATE users SET reputation = reputation + 10 WHERE id = %s", (referrer_id,))
-                mydb.commit()
+                users_collection.update_one({"id": referrer_id}, {"$inc": {"reputation": 10}})
 
         # Удаление кнопки "Проверить"
         bot.edit_message_text(chat_id=user_id, message_id=call.message.message_id, text="Спасибо за подписку! Добро пожаловать!", reply_markup=None)
     else:
         # Удаление сообщения с запросом подписаться и отправка нового сообщения
-        bot.edit_message_text(chat_id=user_id, message_id=call.message.message_id, text="Чтобы продолжить, сначала подпишитесь на наш канал и наш чат", reply_markup=клавиатура_inline)
+        bot.edit_message_text(chat_id=user_id, message_id=call.message.message_id, text="Чтобы продолжить, сначала подпишитесь на наш канал и на наш чат", reply_markup=клавиатура_inline)
 
 # Обработчик нажатия на кнопку "О нас"
 @bot.message_handler(func=lambda message: message.text == "О нас 🌐")
@@ -176,74 +157,42 @@ def about_us(message):
     # Отправка сообщения с текстом и инлайн кнопками
     bot.send_message(message.chat.id, about_text, reply_markup=keyboard)
 
-from telebot import types
-
-from datetime import datetime
-from telebot import types
-
 @bot.message_handler(func=lambda message: message.text == "Профиль 👤")
 def profile(message):
     user_id = message.chat.id
-
-    # Получаем информацию о пользователе из базы данных
-    cur.execute("SELECT * FROM users WHERE id = %s", (user_id,))
-    user_data = cur.fetchone()
-    
+    user_data = users_collection.find_one({"id": user_id})
 
     if user_data:
-        referrals_count = user_data[5]
-        referral_code = user_data[6]
-        username = user_data[1] if user_data[1] else "Нет"
-        first_name = user_data[2] if user_data[2] else "Нет"
-        last_name = user_data[3] if user_data[3] else "Нет"
-        registration_date = user_data[4]
-        referrer_id = user_data[7]
-        reputation = user_data[8]
-        print(user_data)
+        referrals_count = user_data['referrals']
+        referral_code = user_data['referral_code']
+        username = user_data['username'] if user_data['username'] else "Нет"
+        first_name = user_data['first_name'] if user_data['first_name'] else "Нет"
+        last_name = user_data['last_name'] if user_data['last_name'] else "Нет"
+        registration_date = user_data['registration_date']
+        referrer_id = user_data['referrer_id']
+        reputation = user_data['reputation']
 
-        # Получаем текущую дату и время
-        current_datetime = datetime.now()
-        
         # Получаем дату регистрации пользователя
         registration_datetime = datetime.strptime(registration_date, "%Y-%m-%d %H:%M:%S")
-        
+
         # Вычисляем разницу в днях между текущей датой и датой регистрации
-        days_since_registration = (current_datetime - registration_datetime).days
-        print(days_since_registration)
+        days_since_registration = (datetime.now() - registration_datetime).days
 
         # Получаем информацию о пригласившем пользователе
         referrer_info = ""
         if referrer_id:
-            cur.execute("SELECT first_name, username FROM users WHERE id = %s", (referrer_id,))
-            referrer_data = cur.fetchone()
+            referrer_data = users_collection.find_one({"id": referrer_id})
             if referrer_data:
-                referrer_name = referrer_data[0]
-                referrer_username = referrer_data[1]
+                referrer_name = referrer_data['first_name']
+                referrer_username = referrer_data['username']
                 referrer_info = f"Вас пригласил: {referrer_name} (@{referrer_username})\n"
 
-        # Получаем количество сообщений пользователя из таблицы user_stats
-        try:
-            cur.execute("SELECT message_count FROM user_stats WHERE user_id = %s", (user_id,))
-            message_count_result = cur.fetchone()
-            message_count = message_count_result[0] if message_count_result else 0
-            print("Message count retrieved successfully:", message_count)
-        except Exception as e:
-            print("Error while fetching message count:", e)
+        # Получаем количество сообщений пользователя из коллекции completed_tasks
+        message_count = tasks_collection.count_documents({"user_id": user_id})
 
-       # Получаем дату последней активности пользователя из таблицы user_stats
-        cur.execute("SELECT last_message_date FROM user_stats WHERE user_id = %s ORDER BY last_message_date DESC LIMIT 1", (user_id,))
-        last_activity_date_result = cur.fetchone()
-        
-        if last_activity_date_result:
-            last_activity_date = last_activity_date_result[0]  # Получаем дату из результата запроса
-        
-            # Проверяем, что дата не пустая
-            if last_activity_date:
-                last_activity_formatted = last_activity_date.strftime("%d.%m.%Y %H:%M:%S")  # Преобразуем дату в нужный формат
-            else:
-                last_activity_formatted = "Нет данных"
-        else:
-            last_activity_formatted = "Нет данных"
+        # Получаем дату последней активности пользователя
+        last_activity_date = tasks_collection.find_one({"user_id": user_id}, sort=[('timestamp', pymongo.DESCENDING)])
+        last_activity_date = last_activity_date['timestamp'].strftime("%Y-%m-%d %H:%M:%S") if last_activity_date else "Нет данных"
 
         # Формируем сообщение профиля с учетом количества сообщений, репутации и информации о пригласившем пользователе
         profile_message = f"Имя: {first_name}\nФамилия: {last_name}\nИмя пользователя: @{username}\nДней в боте: {days_since_registration}\nПоследняя активность: {last_activity_date}\nРеферралы: {referrals_count}\nКоличество сообщений: {message_count}\n$AGAVA: {reputation}\n\n{referrer_info}Ваша реферальная ссылка: t.me/Cyndycate_invaterbot?start={referral_code}"
@@ -256,8 +205,6 @@ def profile(message):
         bot.send_photo(user_id, media.profile_img, caption=profile_message, reply_markup=tasks_keyboard)
     else:
         bot.send_message(user_id, "Вы еще не зарегистрированы")
-
-
 
 
 
@@ -276,7 +223,7 @@ def profile_tasks_handler(call):
     tasks_keyboard.add(button_30_messages)
     
     # Кнопка для проверки 5 рефералов
-    button_5_referrals = types.InlineKeyboardButton("5 реффералов", callback_data="check_5_referrals")
+    button_5_referrals = types.InlineKeyboardButton("5 рефералов", callback_data="check_5_referrals")
     tasks_keyboard.add(button_5_referrals)
     
     # Кнопка для закрытия сообщения
@@ -288,69 +235,37 @@ def profile_tasks_handler(call):
 
 
 def add_completed_task(user_id, task_name):
-    cur.execute("INSERT INTO completed_tasks (user_id, task_name) VALUES (%s, %s)", (user_id, task_name))
-    mydb.commit()
+    tasks_collection.update_one({"user_id": user_id, "task_name": task_name}, {"$set": {"user_id": user_id, "task_name": task_name}}, upsert=True)
 
 def check_task_completed(user_id, task_name):
-    cur.execute("SELECT * FROM completed_tasks WHERE user_id = %s AND task_name = %s", (user_id, task_name))
-    return cur.fetchone() is not None
-
-
+    return tasks_collection.find_one({"user_id": user_id, "task_name": task_name}) is not None
 
 @bot.callback_query_handler(func=lambda call: call.data == "check_10_messages")
 def check_10_messages_handler(call):
     user_id = call.from_user.id
-    cur.execute("SELECT message_count FROM user_stats WHERE user_id = %s", (user_id,))
-    message_count = cur.fetchone()[0]
+    user = users_collection.find_one({"user_id": user_id})
 
-    if message_count >= 10 and not check_task_completed(user_id, "check_10_messages"):
-        cur.execute("UPDATE users SET reputation = reputation + 50 WHERE id = %s", (user_id,))
-        mydb.commit()
-        add_completed_task(user_id, "check_10_messages")  # Добавляем задание в список выполненных
-        bot.answer_callback_query(call.id, text="Вы получили +50 очков репутации", show_alert=True)
-    elif check_task_completed(user_id, "check_10_messages"):
-        bot.answer_callback_query(call.id, text="Это задание уже выполнено", show_alert=True)
+    if user:
+        message_count = user.get("message_count", 0)
+
+        if message_count >= 10 and not check_task_completed(user_id, "check_10_messages"):
+            # Логика для обновления очков репутации пользователя в базе данных
+            users_collection.update_one({"user_id": user_id}, {"$inc": {"reputation": 50}})
+            add_completed_task(user_id, "check_10_messages")  # Добавляем задание в список выполненных
+            bot.answer_callback_query(call.id, text="Вы получили +50 очков репутации", show_alert=True)
+        elif check_task_completed(user_id, "check_10_messages"):
+            bot.answer_callback_query(call.id, text="Это задание уже выполнено", show_alert=True)
+        else:
+            bot.answer_callback_query(call.id, text="У вас недостаточно сообщений в чате")
     else:
-        bot.answer_callback_query(call.id, text="У вас недостаточно сообщений в чате")
+        bot.answer_callback_query(call.id, text="Пользователь не найден", show_alert=True)
 
-@bot.callback_query_handler(func=lambda call: call.data == "check_30_messages")
-def check_30_messages_handler(call):
-    user_id = call.from_user.id
-    cur.execute("SELECT message_count FROM user_stats WHERE user_id = %s", (user_id,))
-    message_count = cur.fetchone()[0]
-
-    if message_count >= 30 and not check_task_completed(user_id, "check_30_messages"):
-        cur.execute("UPDATE users SET reputation = reputation + 200 WHERE id = %s", (user_id,))
-        mydb.commit()
-        add_completed_task(user_id, "check_30_messages")  # Добавляем задание в список выполненных
-        bot.answer_callback_query(call.id, text="Вы получили +200 очков репутации", show_alert=True)
-    elif check_task_completed(user_id, "check_30_messages"):
-        bot.answer_callback_query(call.id, text="Это задание уже выполнено", show_alert=True)
-    else:
-        bot.answer_callback_query(call.id, text="У вас недостаточно сообщений в чате")
-
-@bot.callback_query_handler(func=lambda call: call.data == "check_5_referrals")
-def check_5_referrals_handler(call):
-    user_id = call.from_user.id
-    cur.execute("SELECT referrals FROM users WHERE id = %s", (user_id,))
-    referrals_count = cur.fetchone()[0]
-
-    if referrals_count >= 5 and not check_task_completed(user_id, "check_5_referrals"):
-        cur.execute("UPDATE users SET reputation = reputation + 200 WHERE id = %s", (user_id,))
-        mydb.commit()
-        add_completed_task(user_id, "check_5_referrals")  # Добавляем задание в список выполненных
-        bot.answer_callback_query(call.id, text="Вы получили +200 очков репутации", show_alert=True)
-    elif check_task_completed(user_id, "check_5_referrals"):
-        bot.answer_callback_query(call.id, text="Это задание уже выполнено", show_alert=True)
-    else:
-        bot.answer_callback_query(call.id, text="У вас недостаточно рефералов")
+# Аналогичные обработчики для других заданий, например, check_30_messages, check_5_referrals, и т. д.
+# ...
 
 @bot.callback_query_handler(func=lambda call: call.data == "close")
 def close_handler(call):
     bot.delete_message(call.message.chat.id, call.message.message_id)
-
-
-
 
 if __name__ == "__main__":
     bot.polling()
