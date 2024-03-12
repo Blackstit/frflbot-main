@@ -42,7 +42,6 @@ chan_id = -1002109241014
 кнопка_о_нас = telebot.types.KeyboardButton("О нас 🌐")  
 клавиатура_профиля.row(кнопка_профиль, кнопка_о_нас)
 
-# Функция для генерации случайного реферрального кода
 def generate_referral_code():
     return ''.join(random.choices(string.ascii_letters + string.digits, k=10))
 
@@ -63,30 +62,41 @@ def start(message):
     print(f"{username} - Реферральный код: {referer_code} мессадж: {message.text}")
 
     # Проверяем, зарегистрирован ли уже пользователь
-    user_data = users_collection.find_one({"id": user_id})
+    user_data = users_collection.find_one({"_id": str(user_id)})
     print(f"{username} - Старт. юзер дата: {user_data}")
     if not user_data:
         # Генерируем уникальный реферральный код
         referral_code = generate_referral_code()
+        referral_link = f"t.me/FireFlyCCbot?start={referral_code}"
         print(f"{username} - Старт. реф код ген: {referral_code}")
         # Поиск пользователя с реферральным кодом
         referrer_id = None
         if referral_code:
             referrer_data = users_collection.find_one({"referral_code": referer_code})
             if referrer_data:
-                referrer_id = referrer_data['id']
+                referrer_id = referrer_data['_id']
 
         # Добавляем пользователя в базу данных
         user = {
-            "id": user_id,
-            "username": username,
+            "_id": str(user_id),
             "first_name": first_name,
             "last_name": last_name,
+            "username": username,
             "registration_date": registration_date,
-            "referrals": 0,
+            "email": "",  # Дефолтное значение
             "referral_code": referral_code,
-            "referrer_id": referrer_id,
-            "reputation": 0
+            "referral_link": referral_link,
+            "balance": 0,  # Дефолтное значение
+            "reputation": 0,
+            "message_cost": 0.5,
+            "improvements": {},  # Дефолтное значение
+            "tasks_completed": [],  # Дефолтное значение
+            "roles": [{
+                "role_id": "Newbie",
+                "role_name": "Glowworm Apprentice",
+                "description": "Ученик Сияющего Червяка - новый участник, только начинающий свой путь в мире криптовалют и чата 'Firefly Crypto'."
+            }],
+            "referrer_id": referrer_id
         }
         users_collection.insert_one(user)
 
@@ -103,26 +113,27 @@ def start(message):
         # Отправляем приветственное сообщение
         bot.send_message(user_id, "С возвращением!", reply_markup=клавиатура_профиля)
 
+
 @bot.callback_query_handler(func=lambda call: call.data == "check")
 def c_listener(call):
     user_id = call.message.chat.id
     x = bot.get_chat_member(chan_id, user_id)
 
     if x.status in ["member", "creator", "administrator"]:
-        user_data = users_collection.find_one({"id": user_id})
+        user_data = users_collection.find_one({"_id": str(user_id)})
         print(f"Чек, юзер дата: {user_data}")
         if user_data:
             # Получаем ID реферрера
             referrer_id = user_data['referrer_id']
             if referrer_id is not None:
                 # Увеличиваем счетчик рефералов
-                users_collection.update_one({"id": referrer_id}, {"$inc": {"referrals": 1}})
+                users_collection.update_one({"_id": referrer_id}, {"$inc": {"referrals": 1}})
                 # Отправка уведомления рефереру о новом реферале
-                referrer_data = users_collection.find_one({"id": referrer_id})
+                referrer_data = users_collection.find_one({"_id": referrer_id})
                 if referrer_data:
                     referrer_name = referrer_data['first_name']
                     referrer_username = referrer_data['username']
-                    referrals_count = referrer_data['referrals']
+                    referrals_count = referrer_data.get('referrals', 0)
                     message_text = f"""🎉 У вас новый реферал! {referrer_name} (@{referrer_username})
 
 Вам начислено +10 $FRFL!!!!
@@ -130,13 +141,14 @@ def c_listener(call):
                     bot.send_message(referrer_id, message_text)
 
                 # Начисление 10 очков репутации за нового реферала
-                users_collection.update_one({"id": referrer_id}, {"$inc": {"reputation": 10}})
+                users_collection.update_one({"_id": referrer_id}, {"$inc": {"reputation": 10}})
 
         # Удаление кнопки "Проверить"
         bot.edit_message_text(chat_id=user_id, message_id=call.message.message_id, text="Спасибо за подписку! Добро пожаловать!", reply_markup=None)
     else:
         # Удаление сообщения с запросом подписаться и отправка нового сообщения
-        bot.edit_message_text(chat_id=user_id, message_id=call.message.message_id, text="Чтобы продолжить, сначала подпишитесь на наш канал и на наш чат", reply_markup=клавиатура_inline)
+        bot.edit_message_text(chat_id=user_id, message_id=call.message.message_id, text="Чтобы продолжить, сначала подпишитесь на наш канал и наш чат", reply_markup=клавиатура_inline)
+
 
 # Обработчик нажатия на кнопку "О нас"
 @bot.message_handler(func=lambda message: message.text == "О нас 🌐")
@@ -150,7 +162,7 @@ def about_us(message):
     # Создание инлайн кнопок
     keyboard = types.InlineKeyboardMarkup()
     btn_agava_crypto = types.InlineKeyboardButton("FireFly Crypto", url="https://t.me/fireflycomm")
-    btn_agava_crypto_chat = types.InlineKeyboardButton("FireFly Crypto Chay", url="https://t.me/+TIBhBif_kQYxZjM0")
+    btn_agava_crypto_chat = types.InlineKeyboardButton("FireFly Crypto Chat", url="https://t.me/+TIBhBif_kQYxZjM0")
     
     # Добавление кнопок на клавиатуру
     keyboard.row(btn_agava_crypto)
@@ -164,60 +176,34 @@ def profile(message):
     user_id = message.chat.id
 
     # Получаем данные пользователя из коллекции users
-    user_data = users_collection.find_one({"id": user_id})
+    user_data = users_collection.find_one({"_id": str(user_id)})
 
     if user_data:
-        # Получаем данные о пользователе из коллекции users_stats
-        user_stats_data = users_stats_collection.find_one({'user_id': user_id})
-
-        # Если данные о пользователе есть в users_stats, используем их
-        if user_stats_data:
-            username = user_stats_data.get('username', 'Нет')
-            message_count = user_stats_data.get('message_count', 0)
-            last_activity_date = user_stats_data.get('last_message_date', 'Нет данных')
-        else:
-            # Если данные о пользователе отсутствуют, устанавливаем значения по умолчанию
-            message_count = 0
-            last_activity_date = 'Нет данных'
-
-        referrals_count = user_data.get('referrals', 0)
-        referral_code = user_data.get('referral_code', 'Нет')
+        # Получаем информацию о пользователе из базы данных
         username = user_data.get('username', 'Нет')
-        first_name = user_data.get('first_name', 'Нет')
-        last_name = user_data.get('last_name', 'Нет')
-        registration_date = user_data.get('registration_date', 'Нет')
-        referrer_id = user_data.get('referrer_id', None)
+        role_name = user_data.get('roles', [{'role_name': 'Newbie'}])[0]['role_name']  # По умолчанию 'Newbie'
         reputation = user_data.get('reputation', 0)
+        balance = user_data.get('balance', 0)
+        improvements_count = len(user_data.get('improvements', {}))
+        tasks_completed_count = len(user_data.get('tasks_completed', []))
 
-        # Получаем дату регистрации пользователя
-        registration_datetime = datetime.strptime(registration_date, "%Y-%m-%d %H:%M:%S")
-
-        # Вычисляем разницу в днях между текущей датой и датой регистрации
-        days_since_registration = (datetime.now() - registration_datetime).days
-
-        # Получаем информацию о пригласившем пользователе
-        referrer_info = ""
-        if referrer_id:
-            referrer_data = users_collection.find_one({"id": referrer_id})
-            if referrer_data:
-                referrer_name = referrer_data.get('first_name', 'Нет')
-                referrer_username = referrer_data.get('username', 'Нет')
-                referrer_info = f"Вас пригласил: {referrer_name} (@{referrer_username})\n"
-
-        # Формируем сообщение профиля с учетом количества сообщений, репутации и информации о пригласившем пользователе
-        profile_message = f"Имя: {first_name}\nФамилия: {last_name}\nИмя пользователя: @{username}\nДней в боте: {days_since_registration}\nПоследняя активность: {last_activity_date}\nРеферралы: {referrals_count}\nКоличество сообщений: {message_count}\n$FRFL: {reputation}\n\n{referrer_info}Ваша реферальная ссылка: t.me/FireFlyCCbot?start={referral_code}"
+        # Формируем сообщение профиля
+        profile_message = f"*Имя*: {username}\n"\
+                          f"*Username*: @{username}\n"\
+                          f"*Роль*: {role_name}\n"\
+                          f"*Репутация*: {reputation}\n"\
+                          f"*Баланс $FRFL*: {balance}\n"\
+                          f"*Куплено улучшений*: {improvements_count}\n"\
+                          f"*Выполнено заданий*: {tasks_completed_count}"
 
         # Создаем клавиатуру для заданий
         tasks_keyboard = types.InlineKeyboardMarkup(row_width=1)
         task_button = types.InlineKeyboardButton("Задания 🎯 ", callback_data="profile_tasks")
         tasks_keyboard.add(task_button)
 
-        bot.send_photo(user_id, media.profile_img, caption=profile_message, reply_markup=tasks_keyboard)
+        bot.send_photo(user_id, media.profile_img, caption=profile_message, reply_markup=tasks_keyboard, parse_mode='Markdown')
     else:
         bot.send_message(user_id, "Вы еще не зарегистрированы")
-
-
-
 
 
 @bot.callback_query_handler(func=lambda call: call.data == "profile_tasks")
