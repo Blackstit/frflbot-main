@@ -82,6 +82,8 @@ def start(message):
             "first_name": first_name,
             "last_name": last_name,
             "username": username,
+            "is_admin": 0, # Дефолтное значение
+            "is_registered": 0,
             "registration_date": registration_date,
             "email": "",  # Дефолтное значение
             "referral_code": referral_code,
