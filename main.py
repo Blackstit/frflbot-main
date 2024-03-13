@@ -28,19 +28,16 @@ bot = telebot.TeleBot(token)
 chan_id = -1002109241014
 
 # Клавиатура для проверки подписки
-клавиатура_inline = telebot.types.InlineKeyboardMarkup()
-подписаться = telebot.types.InlineKeyboardButton(text="Подписаться", url="https://t.me/fireflycomm")
-вступить_в_чат = telebot.types.InlineKeyboardButton(text="Вступить в чат", url="https://t.me/+TIBhBif_kQYxZjM0")
-проверить = telebot.types.InlineKeyboardButton(text="Проверить", callback_data="check")
-клавиатура_inline.add(подписаться)
-клавиатура_inline.add(вступить_в_чат)
-клавиатура_inline.add(проверить)
+check_sub_keyboard = telebot.types.InlineKeyboardMarkup()
+btn_subscribe = telebot.types.InlineKeyboardButton(text="Подписаться", url="https://t.me/fireflycomm")
+btn_check_subscribe = telebot.types.InlineKeyboardButton(text="Проверить", callback_data="check")
+check_sub_keyboard.add(btn_subscribe, btn_check_subscribe)
 
 # Клавиатура для профиля
-клавиатура_профиля = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
-кнопка_профиль = telebot.types.KeyboardButton("Профиль 👤")
-кнопка_о_нас = telebot.types.KeyboardButton("О нас 🌐")  
-клавиатура_профиля.row(кнопка_профиль, кнопка_о_нас)
+profile_keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
+btn_profile = telebot.types.KeyboardButton("Профиль 👤")
+btn_about_us = telebot.types.KeyboardButton("О нас 🌐")  
+profile_keyboard.row(btn_profile, btn_about_us)
 
 def generate_referral_code():
     return ''.join(random.choices(string.ascii_letters + string.digits, k=10))
@@ -83,7 +80,7 @@ def start(message):
             "last_name": last_name,
             "username": username,
             "is_admin": 0, # Дефолтное значение
-            "is_registered": 0,
+            "is_registered": True,  # Устанавливаем при регистрации
             "registration_date": registration_date,
             "email": "",  # Дефолтное значение
             "referral_code": referral_code,
@@ -103,18 +100,30 @@ def start(message):
         users_collection.insert_one(user)
 
         # Отправляем сообщение о подписке и кнопку профиля
-        bot.send_message(user_id, f"Добро пожаловать в мир FireFly Crypto!", reply_markup=клавиатура_профиля)
+        bot.send_message(user_id, f"Добро пожаловать в мир FireFly Crypto!", reply_markup=profile_keyboard)
         bot.send_message(user_id, """Приветствуем тебя в нашем комьюнити крипто-энтузиастов!
 
 Мы ищем активных участников, готовых вкладывать свое время и энергию в наше сообщество, чтобы вместе стремиться к успеху!
 
 Прежде чем присоединиться к нам, подпишись на наш Telegram-канал и создай свой профиль в этом боте.
 
-Здесь ты сможешь отслеживать свой прогресс, получать награды и поощрения от FireFly Crypto! Давай двигаться к успеху вместе!""", reply_markup=клавиатура_inline)
+Здесь ты сможешь отслеживать свой прогресс, получать награды и поощрения от FireFly Crypto! Давай двигаться к успеху вместе!""", reply_markup=check_sub_keyboard)
+    elif not user_data.get('is_registered'):
+        # Устанавливаем флаг is_registered как True
+        users_collection.update_one({"_id": str(user_id)}, {"$set": {"is_registered": True}})
+
+        # Отправляем сообщение о подписке и кнопку профиля
+        bot.send_message(user_id, f"Добро пожаловать в мир FireFly Crypto!", reply_markup=profile_keyboard)
+        bot.send_message(user_id, """Приветствуем тебя в нашем комьюнити крипто-энтузиастов!
+
+Мы ищем активных участников, готовых вкладывать свое время и энергию в наше сообщество, чтобы вместе стремиться к успеху!
+
+Прежде чем присоединиться к нам, подпишись на наш Telegram-канал и создай свой профиль в этом боте.
+
+Здесь ты сможешь отслеживать свой прогресс, получать награды и поощрения от FireFly Crypto! Давай двигаться к успеху вместе!""", reply_markup=check_sub_keyboard)
     else:
         # Отправляем приветственное сообщение
-        bot.send_message(user_id, "С возвращением!", reply_markup=клавиатура_профиля)
-
+        bot.send_message(user_id, "С возвращением!", reply_markup=profile_keyboard)
 
 @bot.callback_query_handler(func=lambda call: call.data == "check")
 def c_listener(call):
@@ -148,8 +157,8 @@ def c_listener(call):
         # Удаление кнопки "Проверить"
         bot.edit_message_text(chat_id=user_id, message_id=call.message.message_id, text="Спасибо за подписку! Добро пожаловать!", reply_markup=None)
     else:
-        # Удаление сообщения с запросом подписаться и отправка нового сообщения
-        bot.edit_message_text(chat_id=user_id, message_id=call.message.message_id, text="Чтобы продолжить, сначала подпишитесь на наш канал и наш чат", reply_markup=клавиатура_inline)
+        # Удаление сообщения с запросом btn_subscribe и отправка нового сообщения
+        bot.edit_message_text(chat_id=user_id, message_id=call.message.message_id, text="Чтобы продолжить, сначала подпишитесь на наш канал и наш чат", reply_markup=check_sub_keyboard)
 
 
 # Обработчик нажатия на кнопку "О нас"
