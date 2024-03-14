@@ -234,11 +234,14 @@ def profile_tasks_handler(call):
     bot.send_message(call.message.chat.id, "Выполняй задания и зарабатывай $FRFL", reply_markup=tasks_keyboard)
 
 
-def add_completed_task(user_id, task_name):
-    tasks_collection.update_one({"user_id": user_id, "task_name": task_name}, {"$set": {"user_id": user_id, "task_name": task_name}}, upsert=True)
+def add_completed_task(user_id, task_id, task_name, reward):
+    task = {
+        "task_id": task_id,
+        "task_name": task_name,
+        "reward": reward
+    }
+    users_collection.update_one({"_id": str(user_id)}, {"$push": {"tasks_completed": task}})
 
-def check_task_completed(user_id, task_name):
-    return tasks_collection.find_one({"user_id": user_id, "task_name": task_name}) is not None
 
 @bot.callback_query_handler(func=lambda call: call.data == "check_10_messages")
 def check_10_messages_handler(call):
@@ -253,7 +256,7 @@ def check_10_messages_handler(call):
         if message_count >= 10 and not check_task_completed(user_id, "check_10_messages"):
             # Логика для обновления очков репутации пользователя в базе данных
             users_collection.update_one({"id": user_id}, {"$inc": {"reputation": 50}})
-            add_completed_task(user_id, "check_10_messages")  # Добавляем задание в список выполненных
+            add_completed_task(user_id, "task_id_10_messages", "10 сообщений в чате", 50)  # Добавляем задание в список выполненных
             bot.answer_callback_query(call.id, text="Вы получили +50 токенов", show_alert=True)
         elif check_task_completed(user_id, "check_10_messages"):
             bot.answer_callback_query(call.id, text="Это задание уже выполнено", show_alert=True)
@@ -262,56 +265,6 @@ def check_10_messages_handler(call):
     else:
         bot.answer_callback_query(call.id, text="Пользователь не найден в базе данных", show_alert=True)
 
-
-@bot.callback_query_handler(func=lambda call: call.data == "check_30_messages")
-def check_30_messages_handler(call):
-    user_id = call.from_user.id
-
-    # Получаем данные о пользователе из коллекции users_stats
-    user_stats_data = users_stats_collection.find_one({'user_id': user_id})
-
-    if user_stats_data:
-        message_count = user_stats_data.get("message_count", 0)
-
-        if message_count >= 30 and not check_task_completed(user_id, "check_30_messages"):
-            # Логика для обновления очков репутации пользователя в базе данных
-            users_collection.update_one({"id": user_id}, {"$inc": {"reputation": 100}})
-            add_completed_task(user_id, "check_30_messages")  # Добавляем задание в список выполненных
-            bot.answer_callback_query(call.id, text="Вы получили +100 токенов", show_alert=True)
-        elif check_task_completed(user_id, "check_30_messages"):
-            bot.answer_callback_query(call.id, text="Это задание уже выполнено", show_alert=True)
-        else:
-            bot.answer_callback_query(call.id, text="У вас недостаточно сообщений в чате", show_alert=True)
-    else:
-        bot.answer_callback_query(call.id, text="Пользователь не найден в базе данных", show_alert=True)
-
-
-@bot.callback_query_handler(func=lambda call: call.data == "check_5_referrals")
-def check_5_referrals_handler(call):
-    user_id = call.from_user.id
-
-    # Получаем данные о пользователе из коллекции users
-    user_data = users_collection.find_one({'id': user_id})
-
-    if user_data:
-        ref_count = user_data.get("referrals", 0)
-
-        if ref_count >= 5 and not check_task_completed(user_id, "check_5_referrals"):
-            # Логика для обновления очков репутации пользователя в базе данных
-            users_collection.update_one({"id": user_id}, {"$inc": {"reputation": 100}})
-            add_completed_task(user_id, "check_5_referrals")  # Добавляем задание в список выполненных
-            bot.answer_callback_query(call.id, text="Вы получили +100 токенов", show_alert=True)
-        elif check_task_completed(user_id, "check_5_referrals"):
-            bot.answer_callback_query(call.id, text="Это задание уже выполнено", show_alert=True)
-        else:
-            bot.answer_callback_query(call.id, text="У вас недостаточно рефераллов", show_alert=True)
-    else:
-        bot.answer_callback_query(call.id, text="Пользователь не найден в базе данных", show_alert=True)
-
-
-@bot.callback_query_handler(func=lambda call: call.data == "close")
-def close_handler(call):
-    bot.delete_message(call.message.chat.id, call.message.message_id)
 
 while True:
     try:
