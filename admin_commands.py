@@ -1,7 +1,7 @@
 from database import connect_to_database
 from dotenv import load_dotenv
 load_dotenv()
-import pymongo
+
 
 chat_stats_collection, users_collection = connect_to_database()
 

@@ -3,6 +3,7 @@ from telebot import types
 
 chat_stats_collection, users_collection = connect_to_database()
 
+
 # Создаем клавиатуру 
 def generate_tasks_keyboard():
     tasks_keyboard = types.InlineKeyboardMarkup(row_width=1)

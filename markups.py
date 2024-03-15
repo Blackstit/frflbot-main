@@ -44,20 +44,3 @@ close_keyboard = types.InlineKeyboardMarkup(row_width=1)
 btn_close = types.InlineKeyboardButton("Закрыть ❌", callback_data="close")
 close_keyboard.add(btn_close)
 
-# # Клавиатура для заданий
-# def generate_tasks_keyboard():
-#     tasks_keyboard = types.InlineKeyboardMarkup(row_width=1)
-    
-#     button_10_messages = types.InlineKeyboardButton("10 сообщений в чате", callback_data="check_10_messages")
-#     tasks_keyboard.add(button_10_messages)
-    
-#     button_30_messages = types.InlineKeyboardButton("30 сообщений в чате", callback_data="check_30_messages")
-#     tasks_keyboard.add(button_30_messages)
-    
-#     button_5_referrals = types.InlineKeyboardButton("5 рефералов", callback_data="check_5_referrals")
-#     tasks_keyboard.add(button_5_referrals)
-    
-#     button_close = types.InlineKeyboardButton("Закрыть ❌", callback_data="close")
-#     tasks_keyboard.add(button_close)
-
-#     return tasks_keyboard
