@@ -174,6 +174,7 @@ def profile(message):
         bot.send_photo(user_id, media.profile_img, caption=profile_message, reply_markup=profile_keyboard, parse_mode='Markdown')
     else:
         bot.send_message(user_id, "Вы еще не зарегистрированы")
+        
 
 @bot.callback_query_handler(func=lambda call: call.data == "profile_stats")
 def profile_stats_handler(call):
